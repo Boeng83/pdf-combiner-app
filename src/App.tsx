@@ -25,7 +25,7 @@ const App: React.FC = () => {
       const mergedPdf = await PDFDocument.create();
       for (const pdfDoc of pdfDocs) {
         const copiedPages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
-        copiedPages.forEach((page) => mergedPdf.addPage(page));
+        copiedPages.forEach((page: any) => mergedPdf.addPage(page));
       }
       const mergedPdfBytes = await mergedPdf.save();
       const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
