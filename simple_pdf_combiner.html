@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Simple PDF Combiner</title>
+
+  <style>
+
+    body { font-family: Arial, sans-serif; margin: 20px; }
+
+    textarea { width: 100%; }
+
+    .drop-zone {
+
+      border: 2px dashed #888;
+
+      padding: 20px;
+
+      margin: 10px 0;
+
+      text-align: center;
+
+    }
+
+    .drop-zone.dragover { background-color: #f0f0f0; }
+
+    button { margin-top: 10px; }
+
+    .file-info { color: green; }
+
+  </style>
+
+</head>
+
+<body>
+
+<h1>Simple PDF Combiner</h1>
+
+<p>Enter a list of document titles (one per line) and click <strong>Generate</strong>. Then drop a file onto each title. Supported files: PDF and common image types (PNG, JPEG). Other file types will produce a placeholder page indicating unsupported type. Finally, click <strong>Combine & Download</strong> to download a single merged PDF.</p>
+
+<textarea id="listInput" rows="6" placeholder="Document Title 1\nDocument Title 2\n..."></textarea><br>
+
+<button id="generateBtn">Generate</button>
+
+<div id="dropContainer"></div>
+
+<button id="combineBtn" disabled>Combine & Download</button>
+
+
+
+<!-- Include pdf-lib library -->
+
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+<script>
+
+  const titles = [];
+
+  const pdfBytesList = [];
+
+  const fileNames = [];
+
+  const generateBtn = document.getElementById('generateBtn');
+
+  const combineBtn = document.getElementById('combineBtn');
+
+  const listInput = document.getElementById('listInput');
+
+  const dropContainer = document.getElementById('dropContainer');
+
+
+
+  generateBtn.addEventListener('click', () => {
+
+    const lines = listInput.value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+    dropContainer.innerHTML = '';
+
+    titles.length = 0;
+
+    pdfBytesList.length = 0;
+
+    fileNames.length = 0;
+
+    lines.forEach((title, index) => {
+
+      titles.push(title);
+
+      pdfBytesList.push(null);
+
+      fileNames.push(null);
+
+      const div = document.createElement('div');
+
+      div.className = 'drop-zone';
+
+      div.dataset.index = index;
+
+      div.innerHTML = `<strong>${title}</strong><br><span class="placeholder">Drop a file here</span>`;
+
+      div.addEventListener('dragover', (e) => {
+
+        e.preventDefault();
+
+        div.classList.add('dragover');
+
+      });
+
+      div.addEventListener('dragleave', () => {
+
+        div.classList.remove('dragover');
+
+      });
+
+      div.addEventListener('drop', async (e) => {
+
+        e.preventDefault();
+
+        div.classList.remove('dragover');
+
+        const file = e.dataTransfer.files[0];
+
+        if (!file) return;
+
+        const index = parseInt(div.dataset.index);
+
+        div.querySelector('.placeholder').textContent = 'Processing...';
+
+        try {
+
+          const pdfBytes = await convertFileToPdf(file);
+
+          pdfBytesList[index] = pdfBytes;
+
+          fileNames[index] = file.name;
+
+          div.querySelector('.placeholder').innerHTML = `<span class="file-info">Uploaded: ${file.name}</span>`;
+
+          // Enable combine button if all files uploaded
+
+          if (pdfBytesList.every(b => b !== null)) {
+
+            combineBtn.disabled = false;
+
+          }
+
+        } catch (err) {
+
+          console.error(err);
+
+          div.querySelector('.placeholder').textContent = 'Error processing file';
+
+        }
+
+      });
+
+      dropContainer.appendChild(div);
+
+    });
+
+    combineBtn.disabled = true;
+
+  });
+
+
+
+  async function convertFileToPdf(file) {
+
+    const arrayBuffer = await file.arrayBuffer();
+
+    const type = file.type || '';
+
+    // Already a PDF
+
+    if (type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+
+      return new Uint8Array(arrayBuffer);
+
+    }
+
+    // Image types
+
+    if (type.startsWith('image/')) {
+
+      const pdfDoc = await PDFLib.PDFDocument.create();
+
+      let embedded;
+
+      const uint8Array = new Uint8Array(arrayBuffer);
+
+      if (type === 'image/png') {
+
+        embedded = await pdfDoc.embedPng(uint8Array);
+
+      } else {
+
+        embedded = await pdfDoc.embedJpg(uint8Array);
+
+      }
+
+      const { width, height } = embedded;
+
+      const page = pdfDoc.addPage([width, height]);
+
+      page.drawImage(embedded, { x: 0, y: 0, width, height });
+
+      return await pdfDoc.save();
+
+    }
+
+    // Other file types: create placeholder
+
+    const pdfDoc = await PDFLib.PDFDocument.create();
+
+    const page = pdfDoc.addPage([600, 200]);
+
+    const text = `Unsupported file type: ${file.name}`;
+
+    page.drawText(text, { x: 50, y: 100, size: 18, color: PDFLib.rgb(1, 0, 0) });
+
+    return await pdfDoc.save();
+
+  }
+
+
+
+  async function combineAndDownload() {
+
+    // Check all PDFs present
+
+    if (pdfBytesList.some(b => b === null)) {
+
+      alert('Please upload a file for each title.');
+
+      return;
+
+    }
+
+    combineBtn.disabled = true;
+
+    const mergedPdf = await PDFLib.PDFDocument.create();
+
+    for (let i = 0; i < pdfBytesList.length; i++) {
+
+      const bytes = pdfBytesList[i];
+
+      const pdf = await PDFLib.PDFDocument.load(bytes);
+
+      const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+
+      copiedPages.forEach(page => mergedPdf.addPage(page));
+
+    }
+
+    const mergedBytes = await mergedPdf.save();
+
+    const blob = new Blob([mergedBytes], { type: 'application/pdf' });
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+
+    a.href = url;
+
+    a.download = 'combined.pdf';
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+
+    combineBtn.disabled = false;
+
+  }
+
+
+
+  combineBtn.addEventListener('click', combineAndDownload);
+
+</script>
+
+</body>
+
+</html>
