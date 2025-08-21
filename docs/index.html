@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Fin Plate Connection Checker</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+	<style>
+		body { font-family: 'Inter', sans-serif; }
+	</style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+	<div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-2xl">
+		<div class="bg-white rounded-xl shadow-lg p-6 sm:p-8">
+			<div class="mb-6">
+				<h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Fin Plate Connection Checker</h1>
+				<p class="text-sm text-gray-500 mt-1">Prototype based on Eurocode 3</p>
+			</div>
+
+			<!-- Connections list: allows multiple connection entries to form a joint -->
+			<div id="connectionsSection" class="space-y-4 mb-6">
+				<h3 class="text-lg font-semibold text-gray-700 border-b pb-2 mb-2">Connections (Joint)</h3>
+				<div id="connectionsList" class="space-y-4"></div>
+				<div class="flex gap-2">
+					<button id="addConnectionBtn" class="bg-green-600 text-white px-3 py-2 rounded-md">Add connection</button>
+					<button id="clearConnectionsBtn" class="bg-red-500 text-white px-3 py-2 rounded-md">Clear</button>
+				</div>
+			</div>
+
+			<div id="inputs" class="space-y-6">
+				<div>
+					<h3 class="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Connection Type</h3>
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+						<label for="connectionType" class="font-medium">Connection Type:</label>
+						<select id="connectionType" class="w-full p-2 border border-gray-300 rounded-md" onchange="onConnectionTypeChange()">
+							<option value="fin_plate">Fin Plate</option>
+							<option value="end_plate">End Plate</option>
+							<option value="cleat">Cleat</option>
+						</select>
+					</div>
+				</div>
+				<div>
+					<h3 class="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Design Load</h3>
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+						<label for="shearForce" class="font-medium">Design Shear Force, V_ed (kN):</label>
+						<input type="number" id="shearForce" value="100" class="w-full p-2 border border-gray-300 rounded-md">
+					</div>
+				</div>
+
+				<div id="beamDetailsGroup">
+					<h3 class="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Beam Details</h3>
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+						<label for="beamWebThickness" class="font-medium">Beam Web Thickness, t_w (mm):</label>
+						<input type="number" id="beamWebThickness" value="8.6" class="w-full p-2 border border-gray-300 rounded-md">
+					</div>
+				</div>
+
+	<div>
+					<h3 class="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Bolt Details</h3>
+					<div class="space-y-4">
+							<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+								<label for="boltGrade" class="font-medium">Bolt Grade:</label>
+								<select id="boltGrade" class="w-full p-2 border border-gray-300 rounded-md"></select>
+							</div>
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+							<label for="boltDiameter" class="font-medium">Bolt Diameter, d (mm):</label>
+							<input type="number" id="boltDiameter" value="20" class="w-full p-2 border border-gray-300 rounded-md">
+						</div>
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+							<label for="boltRows" class="font-medium">Number of Bolt Rows:</label>
+							<input type="number" id="boltRows" value="3" class="w-full p-2 border border-gray-300 rounded-md">
+						</div>
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+							<label for="pitch" class="font-medium">Bolt Pitch, p1 (mm):</label>
+							<input type="number" id="pitch" value="70" class="w-full p-2 border border-gray-300 rounded-md">
+						</div>
+					</div>
+				</div>
+
+				<div>
+					<h3 class="text-lg font-semibold text-gray-700 border-b pb-2 mb-4">Fin Plate Details</h3>
+					<div class="space-y-4">
+						 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+							<label for="plateSteelGrade" class="font-medium">Plate & Beam Steel Grade:</label>
+							<select id="plateSteelGrade" class="w-full p-2 border border-gray-300 rounded-md"></select>
+						</div>
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+							<label for="plateThickness" class="font-medium">Plate Thickness, t_p (mm):</label>
+							<input type="number" id="plateThickness" value="10" class="w-full p-2 border border-gray-300 rounded-md">
+						</div>
+						<div id="plateHeightGroup" class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+							<label for="plateHeight" class="font-medium">Plate Height, h_p (mm):</label>
+							<input type="number" id="plateHeight" value="250" class="w-full p-2 border border-gray-300 rounded-md">
+						</div>
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+							<label for="endDist" class="font-medium">End Distance, e1 (mm):</label>
+							<input type="number" id="endDist" value="40" class="w-full p-2 border border-gray-300 rounded-md">
+						</div>
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+							<label for="edgeDist" class="font-medium">Edge Distance, e2 (mm):</label>
+							<input type="number" id="edgeDist" value="35" class="w-full p-2 border border-gray-300 rounded-md">
+						</div>
+						<div id="endPlateNote" class="text-sm text-gray-500 hidden">End-plate uses plate bending and bolt shear approximations.
+						</div>
+						<div id="cleatNote" class="text-sm text-gray-500 hidden">Cleat uses cleat thickness as plate thickness and bolt shear + bearing heuristics.</div>
+					</div>
+				</div>
+			</div>
+            
+			<div class="mt-8">
+				<button id="calculateBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg">Calculate</button>
+			</div>
+            
+			<div id="results" class="mt-8 p-6 bg-gray-50 rounded-lg hidden"></div>
+		</div>
+	</div>
+
+	<script>
+	// Optional: set this to your deployed backend URL (no trailing slash),
+	// e.g. window.API_BASE = 'https://your-backend.onrender.com'
+	window.API_BASE = window.API_BASE || '';
+	async function loadMaterials() {
+		try {
+			const res = await fetch((window.API_BASE || '') + '/materials');
+			if (!res.ok) return;
+			const data = await res.json();
+			// cache materials for dynamic connection items
+			window._materialsCache = data;
+			// populate any existing top-level selects (fallback)
+			const boltSel = document.getElementById('boltGrade');
+			const plateSel = document.getElementById('plateSteelGrade');
+			if (boltSel) {
+				Object.keys(data.boltGrades || {}).forEach(g => {
+					const opt = document.createElement('option');
+					opt.value = g;
+					opt.textContent = g;
+					boltSel.appendChild(opt);
+				});
+			}
+			if (plateSel) {
+				Object.keys(data.plateGrades || {}).forEach(g => {
+					const opt = document.createElement('option');
+					opt.value = g;
+					opt.textContent = g;
+					plateSel.appendChild(opt);
+				});
+			}
+		} catch (e) {
+			console.warn('Failed to load materials', e);
+		}
+	}
+		function createMaterialOptions() {
+			const mat = window._materialsCache || { boltGrades: {}, plateGrades: {} };
+			const boltOptions = Object.keys(mat.boltGrades || {});
+			const plateOptions = Object.keys(mat.plateGrades || {});
+			return { boltOptions, plateOptions };
+		}
+
+		function createConnectionItem(initial = {}) {
+			const i = document.createElement('div');
+			i.className = 'connection-item bg-white p-4 rounded-md shadow-sm';
+
+			const values = Object.assign({
+				name: initial.name || 'Connection',
+				connectionType: initial.connectionType || 'fin_plate',
+				shearForce: initial.shearForce || document.getElementById('shearForce').value,
+				beamWebThickness: initial.beamWebThickness || document.getElementById('beamWebThickness').value,
+				boltGrade: initial.boltGrade || document.getElementById('boltGrade').value,
+				boltDiameter: initial.boltDiameter || document.getElementById('boltDiameter').value,
+				boltRows: initial.boltRows || document.getElementById('boltRows').value,
+				pitch: initial.pitch || document.getElementById('pitch').value,
+				plateSteelGrade: initial.plateSteelGrade || document.getElementById('plateSteelGrade').value,
+				plateThickness: initial.plateThickness || document.getElementById('plateThickness').value,
+				plateHeight: initial.plateHeight || document.getElementById('plateHeight').value,
+				endDist: initial.endDist || document.getElementById('endDist').value,
+				edgeDist: initial.edgeDist || document.getElementById('edgeDist').value,
+				sharedComponent: initial.sharedComponent || ''
+			}, initial);
+
+			const matOpts = createMaterialOptions();
+
+			i.innerHTML = `
+				<div class="flex justify-between items-center mb-2">
+					<div class="font-semibold">${values.name}</div>
+					<div class="flex gap-2">
+						<button class="remove-conn-btn bg-red-500 text-white px-2 py-1 rounded">Remove</button>
+					</div>
+				</div>
+				<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+					<label class="font-medium">Name:</label>
+					<input class="conn-name p-1 border rounded" value="${values.name}">
+					<label class="font-medium">Connection Type:</label>
+					<select class="conn-type p-1 border rounded">
+						<option value="fin_plate">Fin Plate</option>
+						<option value="end_plate">End Plate</option>
+						<option value="cleat">Cleat</option>
+					</select>
+					<label class="font-medium">Shear Force (kN):</label>
+					<input class="conn-shear p-1 border rounded" type="number" value="${values.shearForce}">
+					<label class="font-medium">Shared Component:</label>
+					<input class="conn-shared p-1 border rounded" placeholder="e.g. column_web" value="${values.sharedComponent}">
+				</div>
+				<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+					<label class="font-medium">Beam Web Thickness t_w (mm):</label>
+					<input class="conn-tw p-1 border rounded" type="number" value="${values.beamWebThickness}">
+					<label class="font-medium">Bolt Grade:</label>
+					<select class="conn-boltgrade p-1 border rounded"></select>
+					<label class="font-medium">Bolt Diameter d (mm):</label>
+					<input class="conn-d p-1 border rounded" type="number" value="${values.boltDiameter}">
+					<label class="font-medium">Bolt Rows:</label>
+					<input class="conn-rows p-1 border rounded" type="number" value="${values.boltRows}">
+					<label class="font-medium">Pitch p1 (mm):</label>
+					<input class="conn-p1 p-1 border rounded" type="number" value="${values.pitch}">
+					<label class="font-medium">Plate Steel Grade:</label>
+					<select class="conn-plategrade p-1 border rounded"></select>
+					<label class="font-medium">Plate Thickness t_p (mm):</label>
+					<input class="conn-tp p-1 border rounded" type="number" value="${values.plateThickness}">
+					<label class="font-medium">Plate Height h_p (mm):</label>
+					<input class="conn-hp p-1 border rounded" type="number" value="${values.plateHeight}">
+					<label class="font-medium">End Dist e1 (mm):</label>
+					<input class="conn-e1 p-1 border rounded" type="number" value="${values.endDist}">
+					<label class="font-medium">Edge Dist e2 (mm):</label>
+					<input class="conn-e2 p-1 border rounded" type="number" value="${values.edgeDist}">
+				</div>
+			`;
+
+			// populate material selects
+			const boltSel = i.querySelector('.conn-boltgrade');
+			const plateSel = i.querySelector('.conn-plategrade');
+			matOpts.boltOptions.forEach(g => {
+				const opt = document.createElement('option'); opt.value = g; opt.textContent = g; boltSel.appendChild(opt);
+			});
+			matOpts.plateOptions.forEach(g => {
+				const opt = document.createElement('option'); opt.value = g; opt.textContent = g; plateSel.appendChild(opt);
+			});
+			// set selected
+			boltSel.value = values.boltGrade;
+			plateSel.value = values.plateSteelGrade;
+
+			// connection type change toggles fields locally
+			const typeSel = i.querySelector('.conn-type');
+			typeSel.value = values.connectionType;
+			typeSel.addEventListener('change', () => {
+				const ctype = typeSel.value;
+				const hp = i.querySelector('.conn-hp');
+				const tw = i.querySelector('.conn-tw');
+				if (ctype === 'fin_plate') { hp.parentElement.style.display = ''; tw.parentElement.style.display = ''; }
+				else if (ctype === 'end_plate') { hp.parentElement.style.display = 'none'; tw.parentElement.style.display = 'none'; }
+				else if (ctype === 'cleat') { hp.parentElement.style.display = 'none'; tw.parentElement.style.display = ''; }
+			});
+
+			// remove handler
+			i.querySelector('.remove-conn-btn').addEventListener('click', () => { i.remove(); });
+
+	// add an error container
+	const err = document.createElement('div');
+	err.className = 'conn-error text-red-600 text-sm mt-2';
+	err.style.display = 'none';
+	i.appendChild(err);
+
+			return i;
+		}
+
+		function clearConnections() {
+			const list = document.getElementById('connectionsList');
+			list.innerHTML = '';
+		}
+
+		async function runChecks() {
+			// gather connections
+			const connElems = Array.from(document.querySelectorAll('.connection-item'));
+			// validate each connection item
+			for (const el of connElems) {
+				const ok = validateConnectionItem(el);
+				if (!ok) {
+					// focus the first invalid item and abort
+					el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+					return;
+				}
+			}
+			if (connElems.length === 0) {
+				// fallback to single payload using top-level inputs
+				const payload = {
+					connectionType: document.getElementById('connectionType').value,
+					shearForce: document.getElementById('shearForce').value,
+					beamWebThickness: document.getElementById('beamWebThickness').value,
+					boltGrade: document.getElementById('boltGrade').value,
+					boltDiameter: document.getElementById('boltDiameter').value,
+					boltRows: document.getElementById('boltRows').value,
+					pitch: document.getElementById('pitch').value,
+					plateSteelGrade: document.getElementById('plateSteelGrade').value,
+					plateThickness: document.getElementById('plateThickness').value,
+					plateHeight: document.getElementById('plateHeight').value,
+					endDist: document.getElementById('endDist').value,
+					edgeDist: document.getElementById('edgeDist').value
+				};
+				return postPayload(payload);
+			}
+
+			const connections = connElems.map(i => ({
+				name: i.querySelector('.conn-name').value,
+				connectionType: i.querySelector('.conn-type').value,
+				shearForce: Number(i.querySelector('.conn-shear').value || 0),
+				beamWebThickness: Number(i.querySelector('.conn-tw').value || 0),
+				boltGrade: i.querySelector('.conn-boltgrade').value,
+				boltDiameter: Number(i.querySelector('.conn-d').value || 0),
+				boltRows: Number(i.querySelector('.conn-rows').value || 0),
+				pitch: Number(i.querySelector('.conn-p1').value || 0),
+				plateSteelGrade: i.querySelector('.conn-plategrade').value,
+				plateThickness: Number(i.querySelector('.conn-tp').value || 0),
+				plateHeight: Number(i.querySelector('.conn-hp').value || 0),
+				endDist: Number(i.querySelector('.conn-e1').value || 0),
+				edgeDist: Number(i.querySelector('.conn-e2').value || 0),
+				sharedComponent: i.querySelector('.conn-shared').value || null
+			}));
+
+			const jointPayload = { joint: { primaryMember: {}, connections } };
+			return postPayload(jointPayload);
+		}
+
+		function isPositiveNumber(val) {
+			const n = Number(val);
+			return !isNaN(n) && isFinite(n) && n > 0;
+		}
+
+		function validateConnectionItem(i) {
+			const type = i.querySelector('.conn-type').value;
+			const errors = [];
+			const get = (sel) => { const el = i.querySelector(sel); return el ? el.value : ''; };
+
+			// required fields per type (selector, friendly name, numeric?)
+			const rules = {
+				'fin_plate': [
+					['.conn-shear', 'Shear force (kN)', true],
+					['.conn-boltgrade', 'Bolt grade', false],
+					['.conn-d', 'Bolt diameter (mm)', true],
+					['.conn-rows', 'Bolt rows', true],
+					['.conn-p1', 'Pitch p1 (mm)', true],
+					['.conn-plategrade', 'Plate steel grade', false],
+					['.conn-tp', 'Plate thickness t_p (mm)', true],
+					['.conn-hp', 'Plate height h_p (mm)', true],
+					['.conn-e1', 'End distance e1 (mm)', true],
+					['.conn-e2', 'Edge distance e2 (mm)', true]
+				],
+				'end_plate': [
+					['.conn-shear', 'Shear force (kN)', true],
+					['.conn-boltgrade', 'Bolt grade', false],
+					['.conn-d', 'Bolt diameter (mm)', true],
+					['.conn-rows', 'Bolt rows', true],
+					['.conn-plategrade', 'Plate steel grade', false],
+					['.conn-tp', 'Plate thickness t_p (mm)', true]
+				],
+				'cleat': [
+					['.conn-shear', 'Shear force (kN)', true],
+					['.conn-boltgrade', 'Bolt grade', false],
+					['.conn-d', 'Bolt diameter (mm)', true],
+					['.conn-rows', 'Bolt rows', true],
+					['.conn-plategrade', 'Cleat steel grade', false],
+					['.conn-tp', 'Cleat thickness t_p (mm)', true],
+					['.conn-e2', 'Edge distance e2 (mm)', true]
+				]
+			};
+
+			const myRules = rules[type] || rules['fin_plate'];
+			for (const [sel, name, numeric] of myRules) {
+				const val = get(sel);
+				if (numeric) {
+					if (!isPositiveNumber(val)) errors.push(name + ' must be a positive number');
+				} else {
+					if (!val || String(val).trim() === '') errors.push(name + ' is required');
+				}
+			}
+
+			const errDiv = i.querySelector('.conn-error');
+			if (errors.length > 0) {
+				errDiv.textContent = errors.join('; ');
+				errDiv.style.display = '';
+				return false;
+			} else {
+				errDiv.textContent = '';
+				errDiv.style.display = 'none';
+				return true;
+			}
+		}
+
+		async function postPayload(payload) {
+			try {
+	const res = await fetch((window.API_BASE || '') + '/calculate', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload)
+				});
+				if (!res.ok) throw new Error('Server returned ' + res.status);
+				const data = await res.json();
+
+				// Display results differently for joint vs single
+				let resultsHTML = `<h3 class="text-xl font-bold text-gray-800 mb-4">Calculation Results</h3>`;
+				if (data.connections) {
+					resultsHTML += `<div class="space-y-4">`;
+					data.connections.forEach(c => {
+						resultsHTML += `<div class="p-2 bg-white rounded border"><div class="font-semibold">${c.connection}</div>`;
+						const checks = c.result.checks || {};
+						for (const [k,v] of Object.entries(checks)) {
+							resultsHTML += `<div class="flex justify-between"><span class="text-gray-600">${k}</span><span class="font-medium">${(v||0).toFixed ? (v.toFixed(2) + ' kN') : v}</span></div>`;
+						}
+						resultsHTML += `<div class="mt-2 font-bold">Status: ${c.result.status}</div>`;
+						resultsHTML += `</div>`;
+					});
+					resultsHTML += `</div>`;
+					// show interaction
+					if (data.interaction) {
+						resultsHTML += `<hr class="my-4"><div class="space-y-2">`;
+						for (const [comp, info] of Object.entries(data.interaction)) {
+							resultsHTML += `<div class="font-semibold">Shared: ${comp}</div>`;
+							resultsHTML += `<div class="grid grid-cols-2 gap-2 text-sm"><div>V total (kN)</div><div>${info.V_total_kN}</div><div>Capacity (kN)</div><div>${info.V_capacity_kN}</div><div>Utilization</div><div>${info.utilization}</div></div>`;
+						}
+						resultsHTML += `</div>`;
+					}
+				} else {
+					const checks = data.checks || {};
+					resultsHTML += `<div class="space-y-2">`;
+					for (const [key, value] of Object.entries(checks)) {
+						resultsHTML += `<div class="flex justify-between"><span class="text-gray-600">${key}:</span><span class="font-medium">${value.toFixed(2)} kN</span></div>`;
+					}
+					resultsHTML += `</div><hr class="my-4">`;
+					resultsHTML += `<div class="space-y-2 text-lg">`;
+					resultsHTML += `<div class="flex justify-between font-bold"><span class="text-gray-800">Governing Resistance (V_rd):</span><span>${(data.V_rd_connection||0).toFixed(2)} kN</span></div>`;
+					resultsHTML += `<div class="flex justify-between font-bold"><span class="text-gray-800">Utilization Ratio:</span><span>${(data.utilization||0).toFixed(2)}</span></div>`;
+					const statusColor = data.status === 'PASS' ? 'text-green-600' : 'text-red-600';
+					resultsHTML += `<div class="flex justify-between font-bold"><span class="text-gray-800">Status:</span><span class="${statusColor}">${data.status}</span></div>`;
+					resultsHTML += `</div>`;
+				}
+
+				const resultsDiv = document.getElementById('results');
+				resultsDiv.innerHTML = resultsHTML;
+				resultsDiv.classList.remove('hidden');
+			} catch (err) {
+				const resultsDiv = document.getElementById('results');
+				resultsDiv.innerHTML = `<div class="text-red-600">Error: ${err.message}</div>`;
+				resultsDiv.classList.remove('hidden');
+			}
+		}
+
+	// Load materials on page load
+	window.addEventListener('load', () => {
+		loadMaterials().then(() => {
+			// create an initial connection item using the current top-level defaults
+			const list = document.getElementById('connectionsList');
+			const first = createConnectionItem();
+			list.appendChild(first);
+		});
+		// Ensure UI matches default connection type on load
+		onConnectionTypeChange();
+		// wire add/clear/calc buttons
+		document.getElementById('addConnectionBtn').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('connectionsList').appendChild(createConnectionItem()); });
+		document.getElementById('clearConnectionsBtn').addEventListener('click', (e) => { e.preventDefault(); clearConnections(); });
+		document.getElementById('calculateBtn').addEventListener('click', (e) => { e.preventDefault(); runChecks(); });
+	});
+
+	function onConnectionTypeChange() {
+		const ctype = document.getElementById('connectionType').value;
+		const plateHeightGroup = document.getElementById('plateHeightGroup');
+		const beamDetailsGroup = document.getElementById('beamDetailsGroup');
+		const endPlateNote = document.getElementById('endPlateNote');
+		const cleatNote = document.getElementById('cleatNote');
+
+		// Fin-plate: show plateHeight and beam details
+		if (ctype === 'fin_plate') {
+			plateHeightGroup.classList.remove('hidden');
+			beamDetailsGroup.classList.remove('hidden');
+			endPlateNote.classList.add('hidden');
+			cleatNote.classList.add('hidden');
+			document.querySelector('h1').textContent = 'Fin Plate Connection Checker';
+		} else if (ctype === 'end_plate') {
+			// End-plate: hide plate height and beam web thickness (not used)
+			plateHeightGroup.classList.add('hidden');
+			beamDetailsGroup.classList.add('hidden');
+			endPlateNote.classList.remove('hidden');
+			cleatNote.classList.add('hidden');
+			document.querySelector('h1').textContent = 'End Plate Connection Checker';
+		} else if (ctype === 'cleat') {
+			// Cleat: show beam details but hide plate height
+			plateHeightGroup.classList.add('hidden');
+			beamDetailsGroup.classList.remove('hidden');
+			endPlateNote.classList.add('hidden');
+			cleatNote.classList.remove('hidden');
+			document.querySelector('h1').textContent = 'Cleat Connection Checker';
+		}
+	}
+	</script>
+
+</body>
+</html>
+
