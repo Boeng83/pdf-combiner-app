@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: fin-plate-checker
+    env: python
+    plan: free
+    repo: https://github.com/Boeng83/pdf-combiner-app
+    branch: main
+    root: fin_plate_checker
+    buildCommand: pip install -r fin_plate_checker/requirements.txt
+    startCommand: gunicorn backend:app
+    autoDeploy: true
+    region: oregon
